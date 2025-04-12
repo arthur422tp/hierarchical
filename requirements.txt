@@ -1,0 +1,7 @@
+numpy
+sentence_transformers
+faiss-cpu
+langchain
+langchain_openai
+fastcluster
+FlagEmbedding
