@@ -12,7 +12,7 @@ class GeneratedFunction:
     def __init__(self):
         pass
 
-    def query_extraction(query:str,llm):
+    def query_extraction(self, query:str ,llm):
         """
         Summary:
         這是一個提取query的函式

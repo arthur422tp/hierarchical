@@ -228,7 +228,8 @@ def extraction_tree_search(root, query, model, chunk_size, chunk_overlap, llm, m
     有進行query extraction的檢索法。
     """
 
-    simplified_query = gf.query_extraction(query, llm)
+    simplified_query = gf.GeneratedFunction().query_extraction(query, llm)
+
     print(f"Simplified Query: {simplified_query}")
     
     results = set()
