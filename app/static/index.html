@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG System</title>
+    <title>RAG法律文本檢索系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .loading {
@@ -19,13 +19,33 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .prose {
+            line-height: 1.6;
+        }
+        .prose p {
+            margin-bottom: 1em;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">RAG 法律問答系統</h1>
+        <h1 class="text-3xl font-bold text-center mb-4 text-gray-800">RAG 法律文本檢索系統</h1>
+        <p class="text-center text-gray-600 mb-8">基於階層式聚類的法律文本檢索與生成系統</p>
         
-        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="bg-blue-50 p-4 mb-6 rounded-md">
+                <h3 class="font-semibold text-blue-800 mb-2">系統說明</h3>
+                <p class="text-sm text-blue-700">本系統使用階層式聚類（Hierarchical Clustering）結合餘弦相似度進行文本向量聚類，能有效處理法規文本的檢索需求。選擇文本後，您可以直接進行樹檢索，或通過查詢提取功能優化檢索效果。</p>
+            </div>
+            
+            <div class="mb-6">
+                <label for="textSelect" class="block text-sm font-medium text-gray-700 mb-2">選擇檢索文本：</label>
+                <select id="textSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="" disabled selected>請選擇文本</option>
+                </select>
+                <div id="textLoading" class="loading mt-2 mx-auto"></div>
+            </div>
+            
             <div class="mb-6">
                 <label for="query" class="block text-sm font-medium text-gray-700 mb-2">請輸入您的法律問題：</label>
                 <textarea id="query" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="請輸入您的問題..."></textarea>
@@ -33,28 +53,151 @@
             
             <div class="flex items-center mb-6">
                 <input type="checkbox" id="useExtraction" class="mr-2">
-                <label for="useExtraction" class="text-sm text-gray-700">使用查詢提取功能</label>
+                <label for="useExtraction" class="text-sm text-gray-700">使用查詢提取功能（可提升檢索效果但處理較慢）</label>
+                <button onclick="showHelp()" class="ml-2 text-sm text-blue-500 hover:text-blue-700 focus:outline-none">[?]</button>
             </div>
             
-            <button onclick="submitQuery()" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
+            <button id="submitButton" onclick="submitQuery()" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
                 <span id="buttonText">提交問題</span>
                 <div id="loading" class="loading ml-2"></div>
             </button>
+        </div>
+
+        <div id="processingStatus" class="max-w-3xl mx-auto mt-4 bg-blue-50 p-4 rounded-lg shadow-sm hidden">
+            <p id="statusText" class="text-blue-600 text-center"></p>
         </div>
 
         <div id="result" class="max-w-3xl mx-auto mt-8 bg-white rounded-lg shadow-md p-6 hidden">
             <h2 class="text-xl font-semibold mb-4 text-gray-800">回答結果：</h2>
             <div id="answer" class="prose max-w-none mb-6"></div>
             
+            <div class="text-sm text-gray-500 mb-4" id="processingTime"></div>
+            
             <h3 class="text-lg font-semibold mb-3 text-gray-800">檢索文檔：</h3>
             <div id="retrievedDocs" class="space-y-4"></div>
+        </div>
+        
+        <div class="max-w-3xl mx-auto mt-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2">直接檢索</h3>
+                    <p class="text-sm text-gray-600">將您的問題直接提交給檢索系統，系統會找出與問題最相似的文本片段，並生成回答。適合簡單明確的問題。</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2">查詢提取檢索</h3>
+                    <p class="text-sm text-gray-600">系統會先分析您的問題，提取關鍵法律概念和問題要點，再進行檢索。適合複雜或包含多個問題點的查詢。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 幫助對話框 -->
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg max-w-lg w-full mx-4">
+            <h3 class="text-xl font-semibold mb-4">查詢提取功能說明</h3>
+            <p class="mb-4">查詢提取功能會先將您的問題提交給語言模型，提取出關鍵的法律問題點和概念，然後再進行檢索。</p>
+            <h4 class="font-semibold mb-2">優點：</h4>
+            <ul class="list-disc pl-5 mb-4">
+                <li>能更好地處理冗長或複雜的問題</li>
+                <li>可以提取出關鍵法律概念</li>
+                <li>減少噪音，提高檢索準確性</li>
+            </ul>
+            <h4 class="font-semibold mb-2">缺點：</h4>
+            <ul class="list-disc pl-5 mb-4">
+                <li>處理時間較長</li>
+                <li>可能會忽略問題中的某些細節</li>
+            </ul>
+            <button onclick="closeHelp()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full">關閉</button>
         </div>
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadAvailableTexts();
+        });
+
+        function showHelp() {
+            document.getElementById('helpModal').classList.remove('hidden');
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModal').classList.add('hidden');
+        }
+
+        async function loadAvailableTexts() {
+            const textSelect = document.getElementById('textSelect');
+            const textLoading = document.getElementById('textLoading');
+            textLoading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/available-texts');
+                if (!response.ok) {
+                    throw new Error(`伺服器錯誤: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('收到的文本列表數據:', data);
+                
+                // 檢查數據是否有效
+                if (!data || !data.available_texts || !Array.isArray(data.available_texts)) {
+                    throw new Error('伺服器返回的資料格式無效');
+                }
+                
+                // 清空現有選項
+                textSelect.innerHTML = '<option value="" disabled selected>請選擇文本</option>';
+                
+                // 添加可用文本
+                data.available_texts.forEach(text => {
+                    const option = document.createElement('option');
+                    option.value = text;
+                    option.textContent = text;
+                    textSelect.appendChild(option);
+                });
+                
+                if (data.available_texts.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = "無可用文本";
+                    option.textContent = "無可用文本";
+                    option.disabled = true;
+                    textSelect.appendChild(option);
+                }
+                
+                // 啟用按鈕
+                document.getElementById('submitButton').disabled = false;
+            } catch (error) {
+                console.error('載入文本列表失敗:', error);
+                
+                // 添加預設選項
+                textSelect.innerHTML = '<option value="" disabled selected>請選擇文本</option>';
+                ['民法總則', '土地法與都市計畫法'].forEach(text => {
+                    const option = document.createElement('option');
+                    option.value = text;
+                    option.textContent = text;
+                    textSelect.appendChild(option);
+                });
+                
+                alert('載入文本列表失敗，已載入預設文本：' + error.message);
+            } finally {
+                textLoading.style.display = 'none';
+            }
+        }
+
+        function showStatus(message) {
+            const statusElement = document.getElementById('processingStatus');
+            const statusTextElement = document.getElementById('statusText');
+            statusTextElement.textContent = message;
+            statusElement.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            const statusElement = document.getElementById('processingStatus');
+            statusElement.classList.add('hidden');
+        }
+
         async function submitQuery() {
             const query = document.getElementById('query').value;
             const useExtraction = document.getElementById('useExtraction').checked;
+            const textName = document.getElementById('textSelect').value;
             const buttonText = document.getElementById('buttonText');
             const loading = document.getElementById('loading');
             const result = document.getElementById('result');
@@ -63,13 +206,26 @@
                 alert('請輸入問題！');
                 return;
             }
+            
+            if (!textName) {
+                alert('請選擇檢索文本！');
+                return;
+            }
 
-            // Show loading state
+            // 顯示載入狀態
             buttonText.textContent = '處理中...';
             loading.style.display = 'block';
+            document.getElementById('submitButton').disabled = true;
             result.classList.add('hidden');
+            hideStatus();
+
+            const startTime = new Date();
+            showStatus('正在初始化查詢處理...');
 
             try {
+                const method = useExtraction ? "查詢提取" : "直接檢索";
+                showStatus(`正在使用${method}方法檢索 "${textName}" 中與問題相關的內容...`);
+                
                 const response = await fetch('/query', {
                     method: 'POST',
                     headers: {
@@ -77,32 +233,61 @@
                     },
                     body: JSON.stringify({
                         query: query,
-                        use_extraction: useExtraction
+                        use_extraction: useExtraction,
+                        text_name: textName
                     }),
                 });
 
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `伺服器錯誤: ${response.status}`);
+                }
+
+                showStatus('檢索完成，正在生成回應...');
                 const data = await response.json();
+                console.log('收到的查詢結果:', data);
                 
-                // Display results
-                document.getElementById('answer').innerHTML = data.answer.replace(/\n/g, '<br>');
+                // 計算處理時間
+                const endTime = new Date();
+                const processingTime = (endTime - startTime) / 1000; // 轉換為秒
+                
+                // 顯示結果
+                document.getElementById('answer').innerHTML = formatText(data.answer);
+                document.getElementById('processingTime').textContent = `處理時間: ${processingTime.toFixed(2)} 秒`;
                 
                 const docsContainer = document.getElementById('retrievedDocs');
                 docsContainer.innerHTML = '';
-                data.retrieved_docs.forEach((doc, index) => {
-                    const docElement = document.createElement('div');
-                    docElement.className = 'bg-gray-50 p-4 rounded-md';
-                    docElement.innerHTML = `<strong>文檔 ${index + 1}:</strong><br>${doc}`;
-                    docsContainer.appendChild(docElement);
-                });
+                
+                if (data.retrieved_docs && data.retrieved_docs.length > 0) {
+                    data.retrieved_docs.forEach((doc, index) => {
+                        const docElement = document.createElement('div');
+                        docElement.className = 'bg-gray-50 p-4 rounded-md';
+                        docElement.innerHTML = `<strong>文檔 ${index + 1}:</strong><br>${doc}`;
+                        docsContainer.appendChild(docElement);
+                    });
+                } else {
+                    docsContainer.innerHTML = '<div class="text-gray-500">沒有找到相關文檔</div>';
+                }
 
                 result.classList.remove('hidden');
+                hideStatus();
             } catch (error) {
+                console.error('查詢處理失敗:', error);
                 alert('發生錯誤：' + error.message);
+                hideStatus();
             } finally {
-                // Reset button state
+                // 重置按鈕狀態
                 buttonText.textContent = '提交問題';
                 loading.style.display = 'none';
+                document.getElementById('submitButton').disabled = false;
             }
+        }
+        
+        // 格式化文本，保留段落和換行
+        function formatText(text) {
+            if (!text) return '';
+            // 將\n轉換為HTML換行
+            return text.replace(/\n/g, '<br>');
         }
     </script>
 </body>
