@@ -1,5 +1,5 @@
 """
-This is for retrieval
+一般faiss內積檢索函式
 """
 import faiss
 import src.utils.word_embedding as word_embedding
@@ -12,7 +12,7 @@ class Retrieval:
 
     def build_index(self, embeddings):
         """
-        Build the index for the embeddings
+        建造向量資料庫
         """
         faiss.normalize_L2(embeddings)
         dimension = embeddings.shape[1]
@@ -23,7 +23,7 @@ class Retrieval:
 
     def retrieve(self, query, text, index, k:int):
         """
-        Retrieve the top k similar documents
+        檢索top-k
         """
         we = word_embedding.WordEmbedding()
         model = we.load_model()

@@ -1,18 +1,18 @@
 """
-This is for chunking
+蒐集做chunking的函式
 """
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 class RagChunking():
     """
-    This is for chunking
+    做chunking的class
     """
     def __init__(self, text):
         self.text = text
 
     def text_chunking(self, chunk_size:int, chunk_overlap:int):
         """
-        This is for chunking
+        做chunking的函式
         """
         text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "●"],
                                                        chunk_size=chunk_size,
