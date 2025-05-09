@@ -142,7 +142,7 @@ with open('data/data_processed/自定義文本_embeddings.pkl', 'wb') as f:
 
 本系統的核心為階層式聚類檢索樹，其運作原理如下：
 
-1. **向量化**：使用 Sentence Transformers 將文本轉換為高維向量
+1. **向量化**：使用 Pre-trained Model 將文本轉換為高維向量
 2. **階層聚類**：採用單鏈接（Single Linkage）方法構建聚類樹
 3. **樹結構遍歷**：檢索時通過向量相似度定位最相似節點
 4. **相關片段收集**：收集定位節點下所有文本片段
