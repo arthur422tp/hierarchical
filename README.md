@@ -1,8 +1,32 @@
-# 階層式聚類法規文本檢索系統
+# Legal Document Retrieval System Based on Hierarchical Clustering （階層式聚類法規文本檢索系統）
 
-本系統在RAG（Retrieval-Augmented Generation）技術下進行修改，捨棄傳統的內積搜索（Inner Product Search），改使用基於階層式聚類（Hierarchical Clustering）與餘弦相似度（Cosine Similarity）建構的檢索樹，實現法規文本的高效搜尋，生成精確的答案。
+### 基於階層式聚類與 RAG 的法規文本智慧檢索引擎
 
-## 📖 系統概述
+本系統是一個結合 AI 法律助手與法規查詢功能的智慧檢索引擎，核心技術為階層式聚類（Hierarchical Clustering）與餘弦相似度（Cosine Similarity），並透過 OpenAI 的 Retrieval-Augmented Generation（RAG）技術進行答案生成。適用於智慧律所、法律聊天機器人、學術研究或多語言法條索引場景，能有效提供準確、可解釋的法規查詢回覆。
+
+## AI-Powered Legal Document Retrieval Engine | Hierarchical Clustering & RAG 
+
+This repository offers a high-accuracy legal document retrieval engine based on hierarchical clustering and cosine similarity, enhanced with RAG using OpenAI GPT. Suitable for AI-based legal assistants, legal chatbot systems, academic research tools, and multilingual law text indexing.
+
+
+
+## 📌 Features | 系統特色
+
+- 🔍 **Hierarchical Clustering-based Retrieval Tree**：構建語意層次索引結構
+- 🔁 **Dual Retrieval Modes**：支援直接檢索與查詢提取兩種模式
+- 🧠 **RAG with OpenAI API**：結合語言模型生成精確法律回答
+- 🧩 **Modular and Scalable**：可快速切換資料、部署方便
+- ✅ **No manual `k` setting**：自動篩選所有相關文本
+- 🌐 **Full-stack ready**：內建前端 UI + REST API
+
+## 🧭 System Overview | 系統概述
+
+本系統為法律文件查詢提供了創新解法，適用於：
+- 法律 AI 助理、智慧律所
+- NLP 法規問答研究
+- 學術或政府法規搜尋平台
+
+支援中文法律文件（如民法、土地法等），後端以 FastAPI 構建，前端使用 HTML + Tailwind CSS。
 
 本系統主要特點：
 
@@ -14,6 +38,16 @@
 - **易於部署**：提供完整的前後端解決方案，快速建立文本檢索演示
 
 ## 💻 技術架構
+
+## 🛠️ Technology Stack | 技術架構
+
+| Component | Tech Used |
+|----------|------------|
+| Frontend | HTML / JavaScript / Tailwind CSS |
+| Backend | FastAPI |
+| Embedding Model | `intfloat/multilingual-e5-large` |
+| Retrieval Tree | Hierarchical Clustering + Cosine Similarity |
+| LLM API | OpenAI GPT (ChatGPT API) |
 
 ### 核心組件
 
@@ -92,7 +126,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 # 加載模型
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('intfloat/multilingual-e5-large')
 
 # 將文本分段
 texts = [...] # 您的文本分段列表
@@ -181,3 +215,5 @@ chunk_overlap = 40    # 切分重疊率
 - 確保 `.env` 文件已正確設置 API 金鑰
 - 建議使用現代瀏覽器以獲得最佳體驗
 - 查詢提取功能處理時間較長，但對複雜問題效果更佳
+
+
