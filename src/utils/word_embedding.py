@@ -2,12 +2,11 @@
 做embedding用的函式
 """
 
-import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
 
-class WordEmbedding():
+class WordEmbedding:
     def __init__(self):
         self.model = None
 
@@ -16,14 +15,14 @@ class WordEmbedding():
         加載模型用
         """
         if self.model is None:
-            self.model = SentenceTransformer('intfloat/multilingual-e5-large')
+            self.model = SentenceTransformer("intfloat/multilingual-e5-large")
 
             if torch.cuda.is_available():
-                self.device = 'cuda'
+                self.device = "cuda"
             elif torch.backends.mps.is_available():
-                self.device = 'mps'
+                self.device = "mps"
             else:
-                self.device = 'cpu'
+                self.device = "cpu"
 
         return self.model.to(self.device)
 

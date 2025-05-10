@@ -66,7 +66,7 @@ class GeneratedFunction:
         return final_result
 
 
-    def RAG_LLM_chain(query, llm, retrieved_docs):
+    def LLM_Task_Oriented(query, llm, retrieved_docs):
         """
         Summary:
         Generator部分
@@ -113,7 +113,7 @@ Observation: 提供清晰、準確的回答。
         print("Final Result:\n", final_result)
         return final_result
 
-    def RAG_cluster_LLM(query, context, llm):    
+    def RAG_CoT(query, context, llm):    
         prompt = PromptTemplate(
             input_variables=["context","query"],
             template=f"""
