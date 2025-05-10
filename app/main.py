@@ -51,6 +51,7 @@ class QueryRequest(BaseModel):
     query: str
     use_extraction: bool = False
     text_name: str  # 添加文本名稱欄位
+    prompt_type: str = "task_oriented"  # 新增 prompt 類型欄位，預設為 task_oriented
 
 class QueryResponse(BaseModel):
     answer: str
@@ -197,11 +198,17 @@ async def process_query(request: QueryRequest):
         if request.use_extraction:
             print("使用提取方法進行檢索...")
             retrieved_docs = rf.extraction_tree_search(tree, normalized_query, model, chunk_size, chunk_overlap, llm)
-            answer = gf.GeneratedFunction.RAG_cluster_LLM(normalized_query, retrieved_docs, llm)
+            if request.prompt_type == "cot":
+                answer = gf.GeneratedFunction.RAG_CoT(normalized_query, retrieved_docs, llm)
+            else:
+                answer = gf.GeneratedFunction.LLM_Task_Oriented(normalized_query, llm, retrieved_docs)
         else:
             print("使用直接檢索方法...")
             retrieved_docs = rf.tree_search(tree, normalized_query, model, chunk_size, chunk_overlap)
-            answer = gf.GeneratedFunction.RAG_LLM_chain(normalized_query, llm, retrieved_docs)
+            if request.prompt_type == "cot":
+                answer = gf.GeneratedFunction.RAG_CoT(normalized_query, retrieved_docs, llm)
+            else:
+                answer = gf.GeneratedFunction.LLM_Task_Oriented(normalized_query, llm, retrieved_docs)
 
         elapsed_time = __import__('time').time() - start_time
         print(f"檢索和生成完成，耗時: {elapsed_time:.2f}秒")
