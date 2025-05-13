@@ -168,6 +168,7 @@ async def process_query(request: QueryRequest):
 
         normalized_query = normalize_query(request.query)
         
+        
 
         # 檢查模型是否已初始化
         if model is None:
@@ -180,7 +181,7 @@ async def process_query(request: QueryRequest):
             api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise ValueError("OPENAI_API_KEY 環境變數未設置，請確認 .env 檔案")
-            llm = ChatOpenAI(api_key=api_key)
+            llm = ChatOpenAI(api_key=api_key, max_tokens=8196)
             print("語言模型已重新載入")
         
         print(f"接收查詢: {normalized_query}, 文本: {request.text_name}, 使用提取: {request.use_extraction}")
@@ -189,7 +190,7 @@ async def process_query(request: QueryRequest):
         tree = get_tree(request.text_name)
 
         # 設定參數
-        chunk_size = 200
+        chunk_size = 100
         chunk_overlap = 40
 
         start_time = __import__('time').time()
