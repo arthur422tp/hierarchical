@@ -205,7 +205,7 @@ with open('data/data_processed/自定義文本_embeddings.pkl', 'wb') as f:
 
 ```python
 # 檢索參數配置
-chunk_size = 200      # 切分長查詢的大小
+chunk_size = 100      # 切分長查詢的大小
 chunk_overlap = 40    # 切分重疊率
 ```
 

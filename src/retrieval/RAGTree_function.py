@@ -237,7 +237,7 @@ def extraction_tree_search(
 
     simplified_query = gf.GeneratedFunction().query_extraction(query, llm)
 
-    print(f"Simplified Query: {simplified_query}")
+    #print(f"Simplified Query: {simplified_query}")
 
     results = set()
     queries = [simplified_query]
