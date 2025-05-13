@@ -1,18 +1,18 @@
 """
 這裡蒐集生成與評測時所使用的函式
 """
+
 from langchain.prompts import PromptTemplate
 from langchain import LLMChain
 
-import re
-from typing import List
+
 
 class GeneratedFunction:
-    
+
     def __init__(self):
         pass
 
-    def query_extraction(self, query:str ,llm):
+    def query_extraction(self, query: str, llm):
         """
         Summary:
         這是一個提取query的函式
@@ -53,18 +53,15 @@ class GeneratedFunction:
 
 以下為案件事實或法律問題內容：
 {query}
-"""
-
+""",
         )
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
 
         final_result = llm_chain.run(query=query)
 
-        
         print("Final Result:\n", final_result)
         return final_result
-
 
     def LLM_Task_Oriented(query, llm, retrieved_docs):
         """
@@ -77,7 +74,7 @@ class GeneratedFunction:
         """
 
         prompt = PromptTemplate(
-            input_variables=["context","query"],
+            input_variables=["context", "query"],
             template="""
 你將獲得以下兩個資訊：
 - **法律問題:** {query}
@@ -102,20 +99,19 @@ Observation: 提供清晰、準確的回答。
 
   
 
-    """
+    """,
         )
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
 
         final_result = llm_chain.run(context=retrieved_docs, query=query)
 
-        
         print("Final Result:\n", final_result)
         return final_result
 
-    def RAG_CoT(query, context, llm):    
+    def RAG_CoT(query, context, llm):
         prompt = PromptTemplate(
-            input_variables=["context","query"],
+            input_variables=["context", "query"],
             template=f"""
 
 你將獲得以下資訊：
@@ -147,19 +143,19 @@ Observation: 提供清晰、準確的回答。
 - 嚴格依照檢索內容推理，禁止引入外部知識或假設。
 - 法律條文請完整標示「XX法第 X 條第 X 項」。
 - 保持用語精確，嚴防法律概念混淆。
-"""
+""",
         )
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
 
         final_result = llm_chain.run(context=context, query=query)
-        
-        
+
         print("Final Result:\n", final_result)
         return final_result
 
-  
-    def LLM_benchmark(query:list[str], llm, retrieved_docs:list[list[str]], answer1, answer2):
+    def LLM_benchmark(
+        query: list[str], llm, retrieved_docs: list[list[str]], answer1, answer2
+    ):
         """
         Summary:
         這是一個benchmark的語言模型
@@ -168,9 +164,9 @@ Observation: 提供清晰、準確的回答。
         llm: 所選定的語言模型
         retrieved_docs: list[list[str]]
         retrieved_answer: list[list[str]
-        """    
+        """
         prompt = PromptTemplate(
-            input_variables=["context","query", "answer"],
+            input_variables=["context", "query", "answer"],
             template="""
         
             你是一名具有法律背景的專業評審，你的目標是根據提供的問題、檢索內容與答案，客觀、公正地評估兩個系統的效能。
@@ -208,13 +204,13 @@ Observation: 提供清晰、準確的回答。
 請依據以上指引，公正客觀地評估系統效能，並產生評估結果。
 
 
-    """
+    """,
         )
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
 
-        who_win = llm_chain.run(context=retrieved_docs, query=query, answer_1=answer1, answer_2=answer2)
+        who_win = llm_chain.run(
+            context=retrieved_docs, query=query, answer_1=answer1, answer_2=answer2
+        )
 
-        
         print("final answer:\n", who_win)
-
