@@ -8,8 +8,6 @@
 
 This repository offers a high-accuracy legal document retrieval engine based on hierarchical clustering and cosine similarity, enhanced with RAG using OpenAI GPT. Suitable for AI-based legal assistants, legal chatbot systems, academic research tools, and multilingual law text indexing.
 
-
-
 ## 📌 Features | 系統特色
 
 - 🔍 **Hierarchical Clustering-based Retrieval Tree**：構建語意層次索引結構
@@ -18,6 +16,7 @@ This repository offers a high-accuracy legal document retrieval engine based on 
 - 🧩 **Modular and Scalable**：可快速切換資料、部署方便
 - ✅ **No manual `k` setting**：自動篩選所有相關文本
 - 🌐 **Full-stack ready**：內建前端 UI + REST API
+- 🐳 **Docker ready**：支援 Docker 容器化部署，一鍵啟動
 
 ## 🧭 System Overview | 系統概述
 
@@ -35,9 +34,7 @@ This repository offers a high-accuracy legal document retrieval engine based on 
 - **雙模式檢索**：支援直接檢索與查詢提取兩種檢索模式
 - **靈活適配**：針對複雜查詢與簡單查詢分別最佳化處理流程
 - **無須設置k值**：自動回傳與問題有關的所有文本
-- **易於部署**：提供完整的前後端解決方案，快速建立文本檢索演示
-
-## 💻 技術架構
+- **易於部署**：提供完整的前後端解決方案，支援傳統部署與 Docker 容器化部署
 
 ## 🛠️ Technology Stack | 技術架構
 
@@ -48,6 +45,7 @@ This repository offers a high-accuracy legal document retrieval engine based on 
 | Embedding Model | `intfloat/multilingual-e5-large` |
 | Retrieval Tree | Hierarchical Clustering + Cosine Similarity |
 | LLM API | OpenAI GPT (ChatGPT API) |
+| Containerization | Docker & Docker Compose |
 
 ### 核心組件
 
@@ -55,6 +53,7 @@ This repository offers a high-accuracy legal document retrieval engine based on 
 - **後端**：FastAPI 提供 RESTful API 服務
 - **檢索引擎**：基於階層式聚類的向量檢索樹
 - **語言模型**：使用 OpenAI API 進行查詢提取與答案生成
+- **容器化**：支援 Docker 快速部署與擴展
 
 ### 檢索流程
 
@@ -75,32 +74,27 @@ This repository offers a high-accuracy legal document retrieval engine based on 
 
 ### 前置條件
 
-- Python 3.8+
-- pip 套件管理器
+- Python 3.8+ 或 Docker 環境
 - OpenAI API 金鑰
 
-### 安裝依賴
+### 方法一：傳統部署
+
+#### 安裝依賴
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 設置環境變數
+#### 設置環境變數
 
-在 `app` 目錄下創建 `.env` 檔案：
+在專案根目錄下創建 `.env` 檔案：
 
 ```
 # OpenAI API金鑰
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-### 使用現有數據
-
-系統預設載入：
-- `data/data_processed/民法總則.pkl` 與 `民法總則_embeddings.pkl`
-- `data/data_processed/土地法與都市計畫法.pkl` 與 `土地法與都市計畫法_embeddings.pkl`
-
-### 啟動應用
+#### 啟動應用
 
 ```bash
 # Linux/Mac
@@ -111,7 +105,38 @@ chmod +x app/run.sh
 app\run.bat
 ```
 
+### 方法二：Docker 部署 (推薦)
+
+#### 前置條件
+- 安裝 [Docker](https://www.docker.com/get-started) 和 [Docker Compose](https://docs.docker.com/compose/install/)
+
+#### 設置環境變數
+在專案根目錄下創建 `.env` 檔案：
+
+```
+# OpenAI API金鑰
+OPENAI_API_KEY=your_openai_api_key
+```
+
+#### 使用 Docker Compose 啟動
+
+```bash
+# 建構並啟動容器
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+
+# 查看日誌
+docker-compose logs -f
+```
+
 應用啟動後，瀏覽器訪問 http://localhost:8000 使用系統。
+
+### 使用現有數據
+
+系統預設載入：
+- `data/data_processed/民法總則.pkl` 與 `民法總則_embeddings.pkl`
+- `data/data_processed/土地法與都市計畫法.pkl` 與 `土地法與都市計畫法_embeddings.pkl`
 
 ## 📚 使用自定義文本
 
@@ -190,7 +215,6 @@ with open('data/data_processed/自定義文本_embeddings.pkl', 'wb') as f:
 3. **樹結構遍歷**：檢索時通過向量相似度定位最相似節點
 4. **相關片段收集**：收集定位節點下所有文本片段
 
-
 這種方法相比傳統的暴力檢索和 Faiss 索引，能更好地保留文本的語義結構和關聯關係。
 
 ## 📊 系統效能
@@ -215,5 +239,6 @@ chunk_overlap = 40    # 切分重疊率
 - 確保 `.env` 文件已正確設置 API 金鑰
 - 建議使用現代瀏覽器以獲得最佳體驗
 - 查詢提取功能處理時間較長，但對複雜問題效果更佳
+- 使用 Docker 部署時，請確保 Docker 和 Docker Compose 已正確安裝
 
 

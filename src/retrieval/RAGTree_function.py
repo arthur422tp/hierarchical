@@ -3,13 +3,15 @@
 """
 
 import numpy as np
-from FlagEmbedding import FlagReranker
 import pickle
-
-
+import sys
+import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+# 添加專案根目錄到路徑，以便引入其他模組
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from app.config import MAX_RESULTS, TOP_K
 
 from fastcluster import linkage
 from scipy.spatial.distance import cosine, cdist
@@ -100,20 +102,27 @@ def create_ahc_tree(vectors, texts):
 # rerank函數
 
 
-def rerank_texts(query, passages, model_name="BAAI/bge-reranker-large"):
+def rerank_texts(query, passages, model):
     """
     Summary:
-    這是一個rerank函式
+    基於餘弦相似度的文本重排序函數，替代原本的 FlagReranker
 
     query: str
     passages: list[str]
-    model_name: 選定BAAI/bge-reranker-large(可更改)
+    model: sentence-transformers model
     """
-    reranker = FlagReranker(model_name, use_fp16=True)
-    scores = reranker.compute_score([[query, passage] for passage in passages])
-
+    query_vector = model.encode(query)
+    passage_vectors = model.encode(passages)
+    
+    # 計算相似度
+    scores = []
+    for passage_vector in passage_vectors:
+        similarity = 1 - cosine(query_vector, passage_vector)
+        scores.append(similarity)
+        
+    # 排序
     scored_passages = sorted(zip(scores, passages), reverse=True)
-
+    
     return [passage for score, passage in scored_passages]
 
 
@@ -197,70 +206,105 @@ def query_tree(root, query, model):
         return collect_leaf_texts(most_similar_node)
 
 
-def tree_search(root, query, model, chunk_size, chunk_overlap, max_chunks=10):
+def _process_retrieved_texts(retrieved_texts, retrieved_vectors, sub_query, model):
     """
-    找尋最接近的文本。
+    處理檢索到的文本，如果超過70個文本則進行排序和篩選。
+    
+    Args:
+        retrieved_texts: 檢索到的文本列表
+        retrieved_vectors: 檢索到的文本向量列表
+        sub_query: 子查詢
+        model: 詞嵌入模型
+        
+    Returns:
+        list: 處理後的文本列表
+    """
+    if len(retrieved_texts) > MAX_RESULTS:
+        # 對於大量檢索結果，做進一步排序篩選
+        query_vector = model.encode([sub_query])
+        similarities = (
+            1 - cdist(query_vector.reshape(1, -1), retrieved_vectors, metric="cosine")[0]
+        )
+        # 取前TOP_K個最相關的
+        top_indices = np.argsort(similarities)[-TOP_K:][::-1]
+        return [retrieved_texts[i] for i in top_indices]
+    else:
+        # 對於少量結果，直接返回
+        return retrieved_texts
+
+
+def _process_queries(queries, root, model, max_chunks=10):
+    """
+    處理多個查詢並合併結果
+    
+    Args:
+        queries: 查詢列表
+        root: 檢索樹根節點
+        model: 詞嵌入模型
+        max_chunks: 最大塊數
+        
+    Returns:
+        list: 合併後的不重複文本列表
     """
     results = set()
+    
+    for sub_query in queries:
+        retrieved_texts, retrieved_vectors = query_tree(root, sub_query, model)
+        processed_texts = _process_retrieved_texts(retrieved_texts, retrieved_vectors, sub_query, model)
+        results.update(processed_texts)
+        
+    return list(results)
+
+
+def tree_search(root, query: str, model, chunk_size: int, chunk_overlap: int, max_chunks: int = 10):
+    """
+    找尋最接近的文本。
+    
+    Args:
+        root: 檢索樹根節點
+        query: 查詢字符串
+        model: 詞嵌入模型
+        chunk_size: 文本分塊大小
+        chunk_overlap: 文本分塊重疊大小
+        max_chunks: 最大分塊數量
+        
+    Returns:
+        list: 檢索到的文本列表
+    """
     queries = [query]
 
     if len(query) > chunk_size:
         qp = QueryProcessor(query)
         queries = qp.text_chunking(chunk_size, chunk_overlap, max_chunks)
 
-    for sub_query in queries:
-        retrieved_texts, retrieved_vectors = query_tree(root, sub_query, model)
-
-        if len(retrieved_texts) > 70:
-            query_vector = model.encode([sub_query])
-            similarities = (
-                1
-                - cdist(
-                    query_vector.reshape(1, -1), retrieved_vectors, metric="cosine"
-                )[0]
-            )
-            top_indices = np.argsort(similarities)[-10:][::-1]
-            refined_docs = [retrieved_texts[i] for i in top_indices]
-            results.update(refined_docs)
-        else:
-            results.update(retrieved_texts)
-
-    return list(results)
+    return _process_queries(queries, root, model, max_chunks)
 
 
 def extraction_tree_search(
-    root, query, model, chunk_size, chunk_overlap, llm, max_chunks=10
+    root, query: str, model, chunk_size: int, chunk_overlap: int, llm, max_chunks: int = 10
 ):
     """
     有進行query extraction的檢索法。
+    
+    Args:
+        root: 檢索樹根節點
+        query: 原始查詢字符串
+        model: 詞嵌入模型
+        chunk_size: 文本分塊大小
+        chunk_overlap: 文本分塊重疊大小
+        llm: 語言模型
+        max_chunks: 最大分塊數量
+        
+    Returns:
+        list: 檢索到的文本列表
     """
-
-    simplified_query = gf.GeneratedFunction().query_extraction(query, llm)
-
-    #print(f"Simplified Query: {simplified_query}")
-
-    results = set()
+    generator = gf.GeneratedFunction()
+    simplified_query = generator.query_extraction(query, llm)
+    
     queries = [simplified_query]
 
     if len(simplified_query) > chunk_size:
         qp = QueryProcessor(simplified_query)
         queries = qp.text_chunking(chunk_size, chunk_overlap, max_chunks)
 
-    for sub_query in queries:
-        retrieved_texts, retrieved_vectors = query_tree(root, sub_query, model)
-
-        if len(retrieved_texts) > 50:
-            query_vector = model.encode([sub_query])
-            similarities = (
-                1
-                - cdist(
-                    query_vector.reshape(1, -1), retrieved_vectors, metric="cosine"
-                )[0]
-            )
-            top_indices = np.argsort(similarities)[-10:][::-1]
-            refined_docs = [retrieved_texts[i] for i in top_indices]
-            results.update(refined_docs)
-        else:
-            results.update(retrieved_texts)
-
-    return list(results)
+    return _process_queries(queries, root, model, max_chunks)

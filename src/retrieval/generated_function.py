@@ -63,14 +63,17 @@ class GeneratedFunction:
         print("Final Result:\n", final_result)
         return final_result
 
-    def LLM_Task_Oriented(query, llm, retrieved_docs):
+    def LLM_Task_Oriented(self, query: str, llm, retrieved_docs: list) -> str:
         """
-        Summary:
-        Generator部分
-
-        query : str
-        llm :所選定的語言模型
-        retrieved_docs :list[str]
+        使用任務導向方式生成回答。
+        
+        Args:
+            query: 使用者查詢
+            llm: 語言模型實例
+            retrieved_docs: 檢索到的文檔列表
+            
+        Returns:
+            str: 生成的回答
         """
 
         prompt = PromptTemplate(
@@ -109,10 +112,21 @@ Observation: 提供清晰、準確的回答。
         print("Final Result:\n", final_result)
         return final_result
 
-    def RAG_CoT(query, context, llm):
+    def RAG_CoT(self, query: str, context: list, llm) -> str:
+        """
+        使用思維鏈方法生成答案，適合需要詳細分析的問題。
+        
+        Args:
+            query: 原始使用者問題
+            context: 檢索到的文本列表
+            llm: 語言模型實例
+            
+        Returns:
+            str: 根據思維鏈方式生成的詳細解答
+        """
         prompt = PromptTemplate(
             input_variables=["context", "query"],
-            template=f"""
+            template="""
 
 你將獲得以下資訊：
 - 原始問題：{query}
@@ -153,20 +167,19 @@ Observation: 提供清晰、準確的回答。
         print("Final Result:\n", final_result)
         return final_result
 
-    def LLM_benchmark(
-        query: list[str], llm, retrieved_docs: list[list[str]], answer1, answer2
-    ):
+    def LLM_benchmark(self, query, llm, retrieved_docs, answer1, answer2):
         """
         Summary:
         這是一個benchmark的語言模型
-
-        query: list[str]
-        llm: 所選定的語言模型
-        retrieved_docs: list[list[str]]
-        retrieved_answer: list[list[str]
+        
+        query: str - 查詢問題
+        llm: LLM - 語言模型
+        retrieved_docs: list[str] - 檢索文檔
+        answer1: str - 系統一的答案 
+        answer2: str - 系統二的答案
         """
         prompt = PromptTemplate(
-            input_variables=["context", "query", "answer"],
+            input_variables=["context", "query", "answer_1", "answer_2"],
             template="""
         
             你是一名具有法律背景的專業評審，你的目標是根據提供的問題、檢索內容與答案，客觀、公正地評估兩個系統的效能。
@@ -214,3 +227,4 @@ Observation: 提供清晰、準確的回答。
         )
 
         print("final answer:\n", who_win)
+        return who_win
