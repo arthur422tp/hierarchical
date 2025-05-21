@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -14,6 +14,13 @@ import numpy as np
 # 添加專案根目錄到路徑，以便引入其他模組
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 導入配置
+from app.config import (
+    APP_DIR, STATIC_DIR, DATA_DIR, 
+    MAX_TOKENS, CHUNK_SIZE, CHUNK_OVERLAP, MAX_CHUNKS,
+    CORS_ORIGINS, API_TITLE
+)
+
 # 導入檢索和生成模組
 from src.utils.word_embedding import WordEmbedding
 import src.retrieval.RAGTree_function as rf
@@ -23,17 +30,20 @@ from langchain_openai import ChatOpenAI
 # 載入環境變數
 load_dotenv()
 
-# Get the absolute path of the app directory
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(APP_DIR, "static")
-DATA_DIR = os.path.join(os.path.dirname(APP_DIR), "data", "data_processed")
+app = FastAPI(title=API_TITLE)
 
-app = FastAPI(title="RAG System API")
+# 應用狀態
+class AppState:
+    model = None
+    trees: Dict[str, Any] = {}
+    llm = None
+
+app.state.app_state = AppState()
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,11 +51,6 @@ app.add_middleware(
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-# 全局變數
-model = None
-trees = {}
-llm = None
 
 class QueryRequest(BaseModel):
     query: str
@@ -63,11 +68,10 @@ class TextListResponse(BaseModel):
 # 初始化模型和語言模型
 @app.on_event("startup")
 async def startup_event():
-    global model, llm
     try:
         # 初始化embedding模型
         word_embedding = WordEmbedding()
-        model = word_embedding.load_model()
+        app.state.app_state.model = word_embedding.load_model()
         print("詞嵌入模型已載入")
         
         # 初始化語言模型
@@ -75,7 +79,7 @@ async def startup_event():
         if not api_key:
             print("警告：OPENAI_API_KEY 環境變數未設置")
         else:
-            llm = ChatOpenAI(api_key=api_key)
+            app.state.app_state.llm = ChatOpenAI(api_key=api_key)
             print("OpenAI語言模型已載入")
     except Exception as e:
         print(f"初始化模型時發生錯誤: {str(e)}")
@@ -86,8 +90,7 @@ def get_tree(text_name):
     - {text_name}_embeddings.pkl：儲存 vectors
     - {text_name}_texts.pkl：儲存 texts
     """
-    global trees
-    if text_name not in trees:
+    if text_name not in app.state.app_state.trees:
         try:
             embeddings_path = os.path.join(DATA_DIR, f"{text_name}_embeddings.pkl")
             texts_path = os.path.join(DATA_DIR, f"{text_name}.pkl")
@@ -107,12 +110,12 @@ def get_tree(text_name):
                 vectors = np.array(vectors)
 
             tree = rf.create_ahc_tree(vectors, texts)
-            trees[text_name] = tree
+            app.state.app_state.trees[text_name] = tree
             print(f"✅ 已建構檢索樹：{text_name}")
         except Exception as e:
             raise ValueError(f"❌ 建構檢索樹失敗 '{text_name}': {str(e)}")
 
-    return trees[text_name]
+    return app.state.app_state.trees[text_name]
 
 # 獲取可用的文本列表
 def get_available_texts():
@@ -156,8 +159,6 @@ async def get_texts():
 @app.post("/query", response_model=QueryResponse)
 async def process_query(request: QueryRequest):
     try:
-        global model, llm
-
         # ✅ 防呆處理：強制將輸入轉為純文字
         def normalize_query(query):
             if isinstance(query, list):
@@ -168,20 +169,18 @@ async def process_query(request: QueryRequest):
 
         normalized_query = normalize_query(request.query)
         
-        
-
         # 檢查模型是否已初始化
-        if model is None:
+        if app.state.app_state.model is None:
             word_embedding = WordEmbedding()
-            model = word_embedding.load_model()
+            app.state.app_state.model = word_embedding.load_model()
             print("詞嵌入模型已重新載入")
         
         # 檢查語言模型是否已初始化
-        if llm is None:
+        if app.state.app_state.llm is None:
             api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise ValueError("OPENAI_API_KEY 環境變數未設置，請確認 .env 檔案")
-            llm = ChatOpenAI(api_key=api_key, max_tokens=8196)
+            app.state.app_state.llm = ChatOpenAI(api_key=api_key, max_tokens=MAX_TOKENS)
             print("語言模型已重新載入")
         
         print(f"接收查詢: {normalized_query}, 文本: {request.text_name}, 使用提取: {request.use_extraction}")
@@ -189,27 +188,28 @@ async def process_query(request: QueryRequest):
         # 獲取檢索樹
         tree = get_tree(request.text_name)
 
-        # 設定參數
-        chunk_size = 100
-        chunk_overlap = 40
-
         start_time = __import__('time').time()
+        
+        # 創建 GeneratedFunction 實例
+        generator = gf.GeneratedFunction()
 
         # 執行檢索與生成
         if request.use_extraction:
             print("使用提取方法進行檢索...")
-            retrieved_docs = rf.extraction_tree_search(tree, normalized_query, model, chunk_size, chunk_overlap, llm)
+            retrieved_docs = rf.extraction_tree_search(tree, normalized_query, app.state.app_state.model,
+                                                     CHUNK_SIZE, CHUNK_OVERLAP, app.state.app_state.llm, MAX_CHUNKS)
             if request.prompt_type == "cot":
-                answer = gf.GeneratedFunction.RAG_CoT(normalized_query, retrieved_docs, llm)
+                answer = generator.RAG_CoT(normalized_query, retrieved_docs, app.state.app_state.llm)
             else:
-                answer = gf.GeneratedFunction.LLM_Task_Oriented(normalized_query, llm, retrieved_docs)
+                answer = generator.LLM_Task_Oriented(normalized_query, app.state.app_state.llm, retrieved_docs)
         else:
             print("使用直接檢索方法...")
-            retrieved_docs = rf.tree_search(tree, normalized_query, model, chunk_size, chunk_overlap)
+            retrieved_docs = rf.tree_search(tree, normalized_query, app.state.app_state.model,
+                                           CHUNK_SIZE, CHUNK_OVERLAP, MAX_CHUNKS)
             if request.prompt_type == "cot":
-                answer = gf.GeneratedFunction.RAG_CoT(normalized_query, retrieved_docs, llm)
+                answer = generator.RAG_CoT(normalized_query, retrieved_docs, app.state.app_state.llm)
             else:
-                answer = gf.GeneratedFunction.LLM_Task_Oriented(normalized_query, llm, retrieved_docs)
+                answer = generator.LLM_Task_Oriented(normalized_query, app.state.app_state.llm, retrieved_docs)
 
         elapsed_time = __import__('time').time() - start_time
         print(f"檢索和生成完成，耗時: {elapsed_time:.2f}秒")
