@@ -10,6 +10,8 @@ airXiv論文連結：https://arxiv.org/abs/2506.13607
 
 This repository offers a high-accuracy legal document retrieval engine based on hierarchical clustering and cosine similarity, enhanced with RAG using OpenAI GPT. Suitable for AI-based legal assistants, legal chatbot systems, academic research tools, and multilingual law text indexing.
 
+Paper is now in airXiv: https://arxiv.org/abs/2506.13607
+
 ## 📌 Features | 系統特色
 
 - 🔍 **Hierarchical Clustering-based Retrieval Tree**：構建語意層次索引結構
