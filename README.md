@@ -4,13 +4,13 @@
 
 本系統是一個結合 AI 法律助手與法規查詢功能的智慧檢索引擎，核心技術為階層式聚類（Hierarchical Clustering）與餘弦相似度（Cosine Similarity），並透過 OpenAI 的 Retrieval-Augmented Generation（RAG）技術進行答案生成。適用於智慧律所、法律聊天機器人、學術研究或多語言法條索引場景，能有效提供準確、可解釋的法規查詢回覆。
 
-airXiv論文連結：https://arxiv.org/abs/2506.13607
+arXiv論文連結：https://arxiv.org/abs/2506.13607
 
 ## AI-Powered Legal Document Retrieval Engine | Hierarchical Clustering & RAG 
 
 This repository offers a high-accuracy legal document retrieval engine based on hierarchical clustering and cosine similarity, enhanced with RAG using OpenAI GPT. Suitable for AI-based legal assistants, legal chatbot systems, academic research tools, and multilingual law text indexing.
 
-Paper is now in airXiv: https://arxiv.org/abs/2506.13607
+Paper is now in arXiv: https://arxiv.org/abs/2506.13607
 
 ## 📌 Features | 系統特色
 
