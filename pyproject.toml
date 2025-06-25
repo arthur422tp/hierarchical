@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hierarchical-rag-retrieval"
+dynamic = ["version"]
+description = "AI-Powered Legal Document Retrieval Engine based on Hierarchical Clustering & RAG"
+readme = "README.md"
+authors = [
+    {name = "arthur422tp", email = "arthur422tp@gmail.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+keywords = ["rag", "retrieval", "hierarchical", "clustering", "legal", "nlp", "ai", "machine-learning"]
+requires-python = ">=3.8"
+dependencies = [
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.0",
+    "torch>=2.0.0",
+    "numpy>=2.3.0",
+    "scipy>=1.16.0",
+    "fastcluster>=1.3.0",
+    "scikit-learn>=1.3.0",
+    "langchain>=0.3.26",
+    "langchain-openai>=0.0.2",
+    "langchain_community>=0.0.10",
+    "python-dotenv>=1.0.0",
+    "pandas>=1.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black",
+    "flake8", 
+    "isort",
+]
+app = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/arthur422tp/hierarchical"
+Documentation = "https://github.com/arthur422tp/hierarchical#readme"
+Repository = "https://github.com/arthur422tp/hierarchical"
+"Bug Tracker" = "https://github.com/arthur422tp/hierarchical/issues"
+"arXiv Paper" = "https://arxiv.org/abs/2506.13607"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+write_to = "src/_version.py" 

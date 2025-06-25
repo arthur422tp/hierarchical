@@ -4,12 +4,13 @@ python-multipart==0.0.6
 pydantic==2.4.2
 sentence-transformers==2.2.2
 faiss-cpu==1.7.4
-langchain==0.0.350
+langchain==0.3.26
 langchain-openai==0.0.2
 torch==2.1.1
-numpy==1.24.3
-scipy==1.11.3
-fastcluster==1.2.6
+numpy==2.3.1
+scipy==1.16.0
+fastcluster==1.3.0
 scikit-learn==1.3.2
 python-dotenv==1.0.0
 langchain_community==0.0.10
+pandas==2.1.0
