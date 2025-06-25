@@ -1,4 +1,161 @@
-*.venv
-.env
-__pycache__/
+# Python
 *.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+.cache
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Virtual environments
+*.venv
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# profiling data
+.prof
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Machine Learning / Data Science (excluding demo data)
+*.joblib
+*.h5
+*.hdf5
+*.csv
+*.xlsx
+*.json
+data/raw/
+# Keep demo processed data but ignore other processed data
+!data/data_processed/
+data/data_processed/*
+!data/data_processed/*.pkl
+models/
+checkpoints/
+
+# API Keys and Secrets
+.env
+.env.local
+.env.production
+*.key
+*.pem
+secrets.json
+
+# Docker
+.dockerignore
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# Node.js (if using npm for anything)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+temp/
+tmp/
+.tmp/
+
+# Documentation builds
+docs/_build/
+site/
+
+# PyPI publishing
+build/
+dist/
+*.egg-info/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Testing
+.pytest_cache/
+.tox/
+
+# Local development
+local_config.py
+local_settings.py
+
+# Package build artifacts
+*.whl
+*.tar.gz
+
+# Setuptools
+setuptools_scm_version.txt
