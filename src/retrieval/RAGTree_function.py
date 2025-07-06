@@ -14,7 +14,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from app.config import MAX_RESULTS, TOP_K
 
 from fastcluster import linkage
+from collections import deque
+
 from scipy.spatial.distance import cosine, cdist
+from sklearn.preprocessing import normalize
 
 import src.retrieval.generated_function as gf
 
@@ -102,7 +105,7 @@ def create_ahc_tree(vectors, texts):
 # rerank函數
 
 
-def rerank_texts(query, passages, model):
+def rerank_texts(query, passages, model, k):
     """
     Summary:
     基於餘弦相似度的文本重排序函數，替代原本的 FlagReranker
@@ -110,20 +113,21 @@ def rerank_texts(query, passages, model):
     query: str
     passages: list[str]
     model: sentence-transformers model
+    k: int
     """
     query_vector = model.encode(query)
     passage_vectors = model.encode(passages)
     
+    query_vector = normalize(query_vector)
+    passage_vectors = normalize(passage_vectors)
+
     # 計算相似度
-    scores = []
-    for passage_vector in passage_vectors:
-        similarity = 1 - cosine(query_vector, passage_vector)
-        scores.append(similarity)
+    similarities = np.dot(passage_vectors, query_vector.T).squeeze()
         
     # 排序
-    scored_passages = sorted(zip(scores, passages), reverse=True)
+    ranked_indices = np.argsort(similarities)[::-1][:k]
     
-    return [passage for score, passage in scored_passages]
+    return [passages[i] for i in ranked_indices]
 
 
 def save_tree(root, filename):
@@ -163,17 +167,17 @@ def find_most_similar_node(root, query, model):
     most_similar_node = None
     query_vector = model.encode(query)
 
-    stack = [root]
-    while stack:
-        node = stack.pop()
+    queue = deque([root])
+    while queue:
+        node = queue.popleft()
         distance = cosine(query_vector, node.vector)
         if distance < min_distance:
             min_distance = distance
             most_similar_node = node
         if node.left:
-            stack.append(node.left)
+            queue.append(node.left)
         if node.right:
-            stack.append(node.right)
+            queue.append(node.right)
 
     return most_similar_node
 
