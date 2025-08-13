@@ -325,6 +325,40 @@ def process_results(results, max_results=5):
 processed_results = process_results(results)
 ```
 
+## 📝 更新附註（最近變更）
+
+- 外部化參數：現在可透過環境變數調整，不需改碼。
+  - LLM：`OPENAI_API_KEY`、`OPENAI_MODEL`、`OPENAI_TEMPERATURE`、`OPENAI_TOP_P`、`OPENAI_MAX_TOKENS`
+  - Embedding：`EMBEDDING_MODEL_NAME`
+  - 檢索：`CHUNK_SIZE`、`CHUNK_OVERLAP`、`MAX_CHUNKS`、`MAX_RESULTS`、`TOP_K`
+  - Rerank：`RERANKER_ENABLE_IN_PIPELINE`（預設 false）、`RERANKER_USE_CROSS_ENCODER`（預設 false）、`RERANKER_MODEL_NAME`
+  - API：`CORS_ORIGINS`、`API_TITLE`
+
+- Rerank 管線開關：
+  - 當 `RERANKER_ENABLE_IN_PIPELINE=true` 且檢索結果數量 > `MAX_RESULTS` 時，系統會自動對候選結果進行重排序。
+  - 若同時設定 `RERANKER_USE_CROSS_ENCODER=true`，會改用 Cross-Encoder 進行配對打分重排（可透過 `RERANKER_MODEL_NAME` 指定模型）。
+
+- .env 範例：
+
+```bash
+OPENAI_API_KEY=sk-xxxx
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_TEMPERATURE=0.2
+OPENAI_TOP_P=0.9
+OPENAI_MAX_TOKENS=4096
+EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-large
+CHUNK_SIZE=150
+CHUNK_OVERLAP=50
+MAX_CHUNKS=12
+MAX_RESULTS=100
+TOP_K=15
+RERANKER_ENABLE_IN_PIPELINE=true
+RERANKER_USE_CROSS_ENCODER=true
+RERANKER_MODEL_NAME=cross-encoder/ms-marco-MiniLM-L-6-v2
+CORS_ORIGINS=http://localhost:3000,https://your.domain
+API_TITLE=Hierarchical RAG API
+```
+
 ## 🔧 配置參數
 
 ### 詞嵌入模型配置

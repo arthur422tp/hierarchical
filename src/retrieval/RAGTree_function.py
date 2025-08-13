@@ -12,12 +12,16 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from app.config import MAX_RESULTS, TOP_K
+from app.config import RERANKER_USE_CROSS_ENCODER, RERANKER_MODEL_NAME
+from app.config import RERANKER_ENABLE_IN_PIPELINE
 
 from fastcluster import linkage
 from collections import deque
 
 from scipy.spatial.distance import cosine, cdist
 from sklearn.preprocessing import normalize
+import torch
+from sentence_transformers import CrossEncoder
 
 import src.retrieval.generated_function as gf
 
@@ -105,28 +109,54 @@ def create_ahc_tree(vectors, texts):
 # rerank函數
 
 
+_CROSS_ENCODER_INSTANCE = None
+
+
+def _determine_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def _get_cross_encoder():
+    global _CROSS_ENCODER_INSTANCE
+    if _CROSS_ENCODER_INSTANCE is None:
+        device = _determine_device()
+        _CROSS_ENCODER_INSTANCE = CrossEncoder(RERANKER_MODEL_NAME, device=device)
+        print(f"已載入 CrossEncoder: {RERANKER_MODEL_NAME} 到 {device}")
+    return _CROSS_ENCODER_INSTANCE
+
+
 def rerank_texts(query, passages, model, k):
     """
     Summary:
-    基於餘弦相似度的文本重排序函數，替代原本的 FlagReranker
+    可切換的文本重排序函數：
+    - 若啟用 Cross-Encoder，使用 cross-encoder 直接對 (query, passage) 配對打分
+    - 否則回退為 embedding 餘弦相似度排序
 
     query: str
     passages: list[str]
-    model: sentence-transformers model
+    model: sentence-transformers embedding model（在未啟用 Cross-Encoder 時使用）
     k: int
     """
+    if RERANKER_USE_CROSS_ENCODER:
+        ce = _get_cross_encoder()
+        pairs = [(query, p) for p in passages]
+        scores = ce.predict(pairs)
+        ranked_indices = np.argsort(scores)[::-1][:k]
+        return [passages[i] for i in ranked_indices]
+
+    # 回退：使用 embedding 餘弦相似度
     query_vector = model.encode(query)
     passage_vectors = model.encode(passages)
-    
+
     query_vector = normalize(query_vector)
     passage_vectors = normalize(passage_vectors)
 
-    # 計算相似度
     similarities = np.dot(passage_vectors, query_vector.T).squeeze()
-        
-    # 排序
     ranked_indices = np.argsort(similarities)[::-1][:k]
-    
     return [passages[i] for i in ranked_indices]
 
 
@@ -225,6 +255,15 @@ def _process_retrieved_texts(retrieved_texts, retrieved_vectors, sub_query, mode
     """
     if len(retrieved_texts) > MAX_RESULTS:
         # 對於大量檢索結果，做進一步排序篩選
+        if RERANKER_ENABLE_IN_PIPELINE:
+            try:
+                # 使用通用的 rerank_texts（可根據環境切換 Cross-Encoder / embedding）
+                reranked = rerank_texts(sub_query, retrieved_texts, model, TOP_K)
+                return reranked
+            except Exception as _:
+                # 回退到向量相似度 rerank
+                pass
+
         query_vector = model.encode([sub_query])
         similarities = (
             1 - cdist(query_vector.reshape(1, -1), retrieved_vectors, metric="cosine")[0]

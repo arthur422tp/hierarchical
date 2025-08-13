@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 導入配置
 from app.config import (
-    APP_DIR, STATIC_DIR, DATA_DIR, 
+    APP_DIR, STATIC_DIR, DATA_DIR,
     MAX_TOKENS, CHUNK_SIZE, CHUNK_OVERLAP, MAX_CHUNKS,
     CORS_ORIGINS, API_TITLE
 )
@@ -31,6 +31,38 @@ from langchain_openai import ChatOpenAI
 load_dotenv()
 
 app = FastAPI(title=API_TITLE)
+# 建立 ChatOpenAI 的工廠函式，支援從環境變數覆寫參數
+def _create_chat_llm() -> ChatOpenAI:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY 環境變數未設置，請確認 .env 檔案")
+
+    model = os.getenv("OPENAI_MODEL")
+    temperature_str = os.getenv("OPENAI_TEMPERATURE")
+    top_p_str = os.getenv("OPENAI_TOP_P")
+    max_tokens_env = os.getenv("OPENAI_MAX_TOKENS")
+
+    kwargs = {"api_key": api_key}
+    # 僅在提供時設定，以沿用套件預設
+    if model:
+        kwargs["model"] = model
+    if temperature_str:
+        try:
+            kwargs["temperature"] = float(temperature_str)
+        except ValueError:
+            pass
+    if top_p_str:
+        try:
+            kwargs["top_p"] = float(top_p_str)
+        except ValueError:
+            pass
+    # max_tokens 以環境優先，否則使用 config 的 MAX_TOKENS
+    try:
+        kwargs["max_tokens"] = int(max_tokens_env) if max_tokens_env else MAX_TOKENS
+    except ValueError:
+        kwargs["max_tokens"] = MAX_TOKENS
+
+    return ChatOpenAI(**kwargs)
 
 # 應用狀態
 class AppState:
@@ -75,12 +107,11 @@ async def startup_event():
         print("詞嵌入模型已載入")
         
         # 初始化語言模型
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("警告：OPENAI_API_KEY 環境變數未設置")
-        else:
-            app.state.app_state.llm = ChatOpenAI(api_key=api_key)
+        try:
+            app.state.app_state.llm = _create_chat_llm()
             print("OpenAI語言模型已載入")
+        except ValueError as _:
+            print("警告：OPENAI_API_KEY 環境變數未設置")
     except Exception as e:
         print(f"初始化模型時發生錯誤: {str(e)}")
 
@@ -108,6 +139,27 @@ def get_tree(text_name):
 
             if not isinstance(vectors, np.ndarray):
                 vectors = np.array(vectors)
+
+            # 維度一致性檢查：避免查詢模型與已存向量維度不一致
+            try:
+                embedding_dim = vectors.shape[1]
+            except Exception:
+                raise ValueError(f"讀取到的向量格式異常，請確認檔案內容：{embeddings_path}")
+
+            try:
+                expected_dim = app.state.app_state.model.get_sentence_embedding_dimension()
+            except Exception:
+                # 後備：若模型無該方法，嘗試編碼一個樣本以取得維度
+                expected_dim = int(app.state.app_state.model.encode(["dim_check"]).shape[1])
+
+            if embedding_dim != expected_dim:
+                raise ValueError(
+                    "Embedding 維度不一致：\n"
+                    f"- 檔案 {embeddings_path} 維度 = {embedding_dim}\n"
+                    f"- 目前模型維度 = {expected_dim}\n\n"
+                    "請調整環境變數 EMBEDDING_MODEL_NAME 以匹配原先建立向量所用模型，"
+                    "或重新產生 embeddings 使其與目前模型一致。"
+                )
 
             tree = rf.create_ahc_tree(vectors, texts)
             app.state.app_state.trees[text_name] = tree
@@ -177,10 +229,7 @@ async def process_query(request: QueryRequest):
         
         # 檢查語言模型是否已初始化
         if app.state.app_state.llm is None:
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY 環境變數未設置，請確認 .env 檔案")
-            app.state.app_state.llm = ChatOpenAI(api_key=api_key, max_tokens=MAX_TOKENS)
+            app.state.app_state.llm = _create_chat_llm()
             print("語言模型已重新載入")
         
         print(f"接收查詢: {normalized_query}, 文本: {request.text_name}, 使用提取: {request.use_extraction}")
