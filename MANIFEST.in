@@ -1,6 +1,7 @@
 include README.md
 include requirements.txt
 include LICENSE
+include env.template
 recursive-include src *.py
 recursive-include src *.txt
 recursive-include src *.md

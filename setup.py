@@ -17,7 +17,6 @@ def read_requirements():
 
 setup(
     name="hierarchical-rag-retrieval",
-    version="0.1.1",
     author="arthur422tp",  # 請修改為您的名稱
     author_email="arthur422tp@gmail.com",  # 請修改為您的郵箱
     description="AI-Powered Legal Document Retrieval Engine based on Hierarchical Clustering & RAG",
