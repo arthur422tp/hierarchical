@@ -16,7 +16,7 @@
 
 ## 📖 系統介紹
 
-本系統是一個結合 AI 法律助手與法規查詢功能的智慧檢索引擎，核心技術為階層式聚類（Hierarchical Clustering）與餘弦相似度（Cosine Similarity），並透過 OpenAI 的 Retrieval-Augmented Generation（RAG）技術進行答案生成。適用於智慧律所、法律聊天機器人、學術研究或多語言法條索引場景，能有效提供準確、可解釋的法規查詢回覆。
+本系統是一個結合 AI 法律助手與法規查詢功能的智慧檢索引擎，核心技術為階層式聚類（Hierarchical Clustering）與餘弦相似度（Cosine Similarity），藉由修改 Retrieval-Augmented Generation（RAG）技術進行答案生成。適用於智慧律所、法律聊天機器人、學術研究或多語言法條索引場景，能有效提供準確、可解釋的法規查詢回覆。
 
 ### 🎯 核心特色
 
